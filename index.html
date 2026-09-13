@@ -98,6 +98,7 @@ function spawnTarget(){ const pad=(Math.random()*PADN)|0;
  nextSpawn=S.songT+gap; }
 
 // ---------------- scoring
+function pushFloat(o){ for(const f of floats){ if(Math.abs(f.x-o.x)<130){ f.y-=36; f.t+=.22; } } floats.push(o); }
 function judge(dt){ const a=Math.abs(dt);
  if(a<=.09)return{t:'PERFECT',pts:150,c:'#ffd94d'};
  if(a<=.18)return{t:'GOOD',pts:100,c:'#7dffa8'};
@@ -119,7 +120,7 @@ function slap(padIdx){
  for(let i=0;i<(j.t==='PERFECT'?26:14);i++){ const a=Math.random()*6.28, sp=120+Math.random()*260;
   parts.push({x:pads[padIdx].x,y:pads[padIdx].y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-80,t:0,life:.5+Math.random()*.4,
    c:j.t==='PERFECT'?'#ffd94d':(j.t==='GOOD'?'#7dffa8':'#9fd8ff'),r:2+Math.random()*3}); }
- floats.push({x:pads[padIdx].x,y:pads[padIdx].y-40,t:0,txt:j.t+' +'+j.pts*mult,c:j.c,big:j.t==='PERFECT'});
+ pushFloat({x:pads[padIdx].x,y:pads[padIdx].y-40,t:0,txt:j.t+' +'+j.pts*mult,c:j.c,big:j.t==='PERFECT'});
  if(S.gauge>=12&&S.fever<=0){ S.fever=8; S.gauge=0; shake=Math.max(shake,.6);
   floats.push({x:W/2,y:H*.24,t:0,txt:'FEVER! x2',c:'#ffd94d',big:true});
   for(let k=0;k<5;k++)pluck(2+k*2); noise(.4,.3,4000); } }
@@ -180,6 +181,9 @@ function updateDt(dt){
  { let live=null,bd=1e9;
   for(const t of targets){ if(t.judged)continue; const d=Math.abs(t.hit-S.songT); if(d<bd){bd=d;live=t;} }
   if(S.state==='play'&&live){ paw.tx=pads[live.pad].x; paw.ty=pads[live.pad].y; }
+  else if(S.state==='over'){ // the cat waves you back - beckon swing around the rest pose
+   paw.tx=cat.x+62*cat.s+Math.sin(performance.now()/260)*10*cat.s;
+   paw.ty=cat.y-152*cat.s+Math.cos(performance.now()/260)*16*cat.s; }
   else { paw.tx=cat.x+62*cat.s; paw.ty=cat.y-152*cat.s; } }
  for(const p of petals){ p.y+=p.vy*dt; p.x+=p.vx*dt+Math.sin(performance.now()/700+p.ph)*.4;
   if(p.y>H+10){p.y=-10;p.x=Math.random()*W;} if(p.x<-10)p.x=W+10; if(p.x>W+10)p.x=-10; }
@@ -190,7 +194,7 @@ function updateDt(dt){
   S.songT+=dt; S.fever=Math.max(0,S.fever-dt);
   if(S.songT>=nextSpawn&&S.songT<ROUND-1)spawnTarget();
   for(const tg of targets){ if(!tg.judged&&S.songT-tg.hit>.30){ tg.judged=true; S.misses++; S.combo=0;
-   floats.push({x:pads[tg.pad].x,y:pads[tg.pad].y-30,t:0,txt:'MISS',c:'#ff6a5e',big:false});
+   pushFloat({x:pads[tg.pad].x,y:pads[tg.pad].y-30,t:0,txt:'MISS',c:'#ff6a5e',big:false});
    tone(300,120,.25,'triangle',.15); } }
   targets=targets.filter(t=>!t.judged||S.songT-t.hit<.4);
   if(AUTO){ for(const tg of targets){ if(!tg.judged&&S.songT>=tg.hit-.02){ slap(tg.pad); break; } } }
@@ -497,6 +501,7 @@ function frame(now){
  drawBG(now); drawCounter();
  drawPads(now);
  if(!(S.state==='menu'&&W<560)){ drawCat(now); drawHighPaw(now); }
+ else if(S.state==='menu')drawCatOn(cx,now,W*.5,H*.79,Math.min(W,H)/560,skin());
  drawFloatsParts();
  if(CARDMODE){ const cc=renderShareCard(); cx.drawImage(cc,0,0,W,H); }
  else if(S.state==='play')drawHUD();
